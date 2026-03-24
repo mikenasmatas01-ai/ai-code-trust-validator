@@ -1,0 +1,178 @@
+{
+  "name": "ai-trust-validator",
+  "displayName": "AI Code Trust Validator",
+  "description": "Validate AI-generated code for security, hallucinations, and logic errors",
+  "version": "0.2.0",
+  "publisher": "rudra496",
+  "author": {
+    "name": "Rudra Sarker",
+    "url": "https://rudra496.github.io/site"
+  },
+  "license": "MIT",
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rudra496/ai-code-trust-validator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rudra496/ai-code-trust-validator/issues"
+  },
+  "homepage": "https://github.com/rudra496/ai-code-trust-validator#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Security",
+    "Testing",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "security",
+    "validation",
+    "linting",
+    "chatgpt",
+    "copilot",
+    "code-review",
+    "trust"
+  ],
+  "activationEvents": [
+    "onLanguage:python",
+    "onCommand:aiTrust.validate",
+    "onCommand:aiTrust.validateFile",
+    "onCommand:aiTrust.showReport"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiTrust.validate",
+        "title": "Validate AI Code",
+        "category": "AI Trust",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "aiTrust.validateFile",
+        "title": "Validate Current File",
+        "category": "AI Trust",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "aiTrust.showReport",
+        "title": "Show Trust Report",
+        "category": "AI Trust",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "aiTrust.clearCache",
+        "title": "Clear Validation Cache",
+        "category": "AI Trust"
+      },
+      {
+        "command": "aiTrust.watchMode",
+        "title": "Toggle Watch Mode",
+        "category": "AI Trust",
+        "icon": "$(eye)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "aiTrust.validateFile",
+          "when": "editorLangId == python",
+          "group": "aiTrust@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "aiTrust.validateFile",
+          "when": "editorLangId == python",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Code Trust Validator",
+      "properties": {
+        "aiTrust.minScore": {
+          "type": "number",
+          "default": 70,
+          "description": "Minimum trust score to pass (0-100)"
+        },
+        "aiTrust.strictMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Fail on any critical issues"
+        },
+        "aiTrust.enableSecurity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security analysis"
+        },
+        "aiTrust.enableHallucination": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable hallucination detection"
+        },
+        "aiTrust.enableLogic": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable logic validation"
+        },
+        "aiTrust.enableBestPractices": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable best practices checking"
+        },
+        "aiTrust.autoValidate": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically validate on save"
+        },
+        "aiTrust.showInlineHints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline trust score hints"
+        },
+        "aiTrust.pythonPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to Python interpreter"
+        }
+      }
+    },
+    "statusBarItems": [
+      {
+        "command": "aiTrust.validate",
+        "alignment": "right",
+        "priority": 100
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^2.20.0"
+  },
+  "dependencies": {}
+}

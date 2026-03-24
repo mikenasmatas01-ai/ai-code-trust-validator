@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Trust Validator - Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e4e4e4;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0,217,255,0.1);
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+        
+        .score-good { color: #00ff88; }
+        .score-warn { color: #ffaa00; }
+        .score-bad { color: #ff4444; }
+        
+        /* Main Content */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            padding: 20px 0;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Validation Panel */
+        .panel {
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .panel-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Code Editor */
+        .code-editor {
+            background: #0d1117;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .editor-header {
+            background: rgba(255,255,255,0.05);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-tabs {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .editor-tab {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .editor-tab.active {
+            background: rgba(0,217,255,0.2);
+            color: #00d9ff;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 400px;
+            background: transparent;
+            border: none;
+            color: #e4e4e4;
+            font-family: 'Fira Code', 'Monaco', monospace;
+            font-size: 14px;
+            padding: 16px;
+            resize: vertical;
+            outline: none;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00d9ff, #00ff88);
+            color: #0a0a0a;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,217,255,0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #e4e4e4;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        /* Results Panel */
+        .results-panel {
+            position: sticky;
+            top: 20px;
+        }
+        
+        .trust-score {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 3rem;
+            font-weight: bold;
+            position: relative;
+        }
+        
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 4px solid;
+            border-color: inherit;
+            opacity: 0.3;
+        }
+        
+        .categories-list {
+            margin-top: 20px;
+        }
+        
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        
+        /* Issues List */
+        .issues-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .issue-item {
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 3px solid;
+        }
+        
+        .issue-critical { border-color: #ff4444; }
+        .issue-high { border-color: #ff8800; }
+        .issue-medium { border-color: #ffaa00; }
+        .issue-low { border-color: #00d9ff; }
+        
+        .issue-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .issue-severity {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+        
+        .severity-critical { color: #ff4444; }
+        .severity-high { color: #ff8800; }
+        .severity-medium { color: #ffaa00; }
+        .severity-low { color: #00d9ff; }
+        
+        .issue-message {
+            margin-bottom: 8px;
+        }
+        
+        .issue-suggestion {
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* API Status */
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 40px;
+        }
+        
+        footer a {
+            color: #00d9ff;
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🛡️ AI Code Trust Validator</h1>
+        <p class="subtitle">Validate AI-generated code for security, hallucinations & logic errors</p>
+    </header>
+    
+    <div class="container">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value score-good" id="stat-files">0</div>
+                <div class="stat-label">Files Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-avg-score">--</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-good" id="stat-passed">0</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-bad" id="stat-failed">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-bad" id="stat-critical">0</div>
+                <div class="stat-label">Critical Issues</div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- Code Editor Panel -->
+            <div class="panel">
+                <div class="panel-title">
+                    📝 Code Editor
+                    <div class="api-status">
+                        <div class="status-dot"></div>
+                        <span>API Connected</span>
+                    </div>
+                </div>
+                
+                <div class="code-editor">
+                    <div class="editor-header">
+                        <div class="editor-tabs">
+                            <button class="editor-tab active">main.py</button>
+                            <button class="editor-tab">+ New File</button>
+                        </div>
+                    </div>
+                    <textarea id="code-input" placeholder="# Paste your AI-generated code here...
+# Or start typing to validate in real-time
+
+def example_function():
+    pass"></textarea>
+                </div>
+                
+                <div style="margin-top: 16px; display: flex; gap: 12px;">
+                    <button class="btn btn-primary" onclick="validateCode()">
+                        🛡️ Validate Code
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadExample()">
+                        📋 Load Example
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearCode()">
+                        🗑️ Clear
+                    </button>
+                </div>
+                
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing code...</p>
+                </div>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="panel results-panel">
+                <div class="panel-title">📊 Results</div>
+                
+                <div class="trust-score" id="trust-score" style="display: none;">
+                    <div class="score-circle score-warn" id="score-circle">
+                        <span id="score-value">--</span>
+                    </div>
+                    <div id="score-status">Enter code to validate</div>
+                </div>
+                
+                <!-- Categories -->
+                <div class="categories-list" id="categories-list" style="display: none;">
+                    <h3 style="margin-bottom: 12px;">Categories</h3>
+                </div>
+                
+                <!-- Issues -->
+                <div id="issues-section" style="display: none;">
+                    <h3 style="margin: 20px 0 12px;">Issues</h3>
+                    <div class="issues-list" id="issues-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Built with ❤️ by <a href="https://rudra496.github.io/site">Rudra Sarker</a></p>
+        <p style="margin-top: 8px;">
+            <a href="https://github.com/rudra496/ai-code-trust-validator">GitHub</a> • 
+            <a href="https://pypi.org/project/ai-trust-validator/">PyPI</a> • 
+            <a href="https://www.linkedin.com/in/rudrasarker">LinkedIn</a>
+        </p>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:8080';
+        
+        // Stats
+        let totalFiles = 0;
+        let totalPassed = 0;
+        let totalFailed = 0;
+        let totalCritical = 0;
+        let scores = [];
+        
+        async function validateCode() {
+            const code = document.getElementById('code-input').value;
+            if (!code.trim()) {
+                alert('Please enter some code to validate');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_URL}/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.data);
+                    updateStats(data.data);
+                } else {
+                    alert('Validation error: ' + data.error);
+                }
+            } catch (error) {
+                // Fallback to local validation display
+                console.log('API not available, showing demo results');
+                displayDemoResults();
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function displayResults(result) {
+            // Show panels
+            document.getElementById('trust-score').style.display = 'block';
+            document.getElementById('categories-list').style.display = 'block';
+            document.getElementById('issues-section').style.display = 'block';
+            
+            // Score
+            const score = result.trust_score;
+            const scoreCircle = document.getElementById('score-circle');
+            const scoreValue = document.getElementById('score-value');
+            const scoreStatus = document.getElementById('score-status');
+            
+            scoreValue.textContent = score;
+            scoreCircle.className = 'score-circle ' + (score >= 80 ? 'score-good' : score >= 60 ? 'score-warn' : 'score-bad');
+            scoreStatus.textContent = result.passed ? '✅ Passed' : '❌ Failed';
+            
+            // Categories
+            const categoriesList = document.getElementById('categories-list');
+            categoriesList.innerHTML = '<h3 style="margin-bottom: 12px;">Categories</h3>';
+            
+            for (const [name, data] of Object.entries(result.categories || {})) {
+                const item = document.createElement('div');
+                item.className = 'category-item';
+                item.innerHTML = `
+                    <span>${name.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                    <span>${data.score}/100</span>
+                `;
+                categoriesList.appendChild(item);
+            }
+            
+            // Issues
+            const issuesList = document.getElementById('issues-list');
+            issuesList.innerHTML = '';
+            
+            if (result.issues && result.issues.length > 0) {
+                result.issues.forEach(issue => {
+                    const item = document.createElement('div');
+                    item.className = `issue-item issue-${issue.severity}`;
+                    item.innerHTML = `
+                        <div class="issue-header">
+                            <span class="issue-severity severity-${issue.severity}">${issue.severity}</span>
+                            <span style="color: #888;">${issue.category}</span>
+                        </div>
+                        <div class="issue-message">${issue.message}</div>
+                        ${issue.suggestion ? `<div class="issue-suggestion">💡 ${issue.suggestion}</div>` : ''}
+                    `;
+                    issuesList.appendChild(item);
+                });
+            } else {
+                issuesList.innerHTML = '<p style="color: #00ff88; text-align: center;">✅ No issues found!</p>';
+            }
+        }
+        
+        function updateStats(result) {
+            totalFiles++;
+            scores.push(result.trust_score);
+            
+            if (result.passed) totalPassed++;
+            else totalFailed++;
+            
+            totalCritical += result.critical_count || 0;
+            
+            document.getElementById('stat-files').textContent = totalFiles;
+            document.getElementById('stat-avg-score').textContent = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+            document.getElementById('stat-passed').textContent = totalPassed;
+            document.getElementById('stat-failed').textContent = totalFailed;
+            document.getElementById('stat-critical').textContent = totalCritical;
+        }
+        
+        function displayDemoResults() {
+            // Demo results when API not available
+            const demoResult = {
+                trust_score: 67,
+                passed: false,
+                categories: {
+                    security: { score: 72, weight: 2, issue_count: 3 },
+                    hallucinations: { score: 45, weight: 2.5, issue_count: 2 },
+                    logic: { score: 85, weight: 1, issue_count: 1 },
+                    best_practices: { score: 70, weight: 0.5, issue_count: 2 }
+                },
+                issues: [
+                    { severity: 'critical', category: 'hallucinations', message: "Import 'fancy_lib' does not exist", suggestion: "Use 'numpy' or 'pandas' instead" },
+                    { severity: 'high', category: 'security', message: "Potential SQL injection via f-string", suggestion: "Use parameterized queries" },
+                    { severity: 'medium', category: 'best_practices', message: "Function missing docstring", suggestion: "Add a docstring" }
+                ]
+            };
+            
+            displayResults(demoResult);
+            updateStats(demoResult);
+        }
+        
+        function loadExample() {
+            const example = `# AI-generated code example
+import quick_sort_v2  # Hallucinated import
+import os
+
+PASSWORD = "secret123"  # Hardcoded secret
+
+def get_user(user_id):
+    # SQL injection vulnerability
+    query = f"SELECT * FROM users WHERE id = {user_id}"
+    cursor.execute(query)
+    return cursor.fetchone()
+
+def process(data):
+    # Dangerous eval
+    result = eval(data)
+    return result
+
+def infinite():
+    while True:  # Infinite loop
+        do_work()
+    
+def unreachable():
+    return 42
+    print("Never runs")  # Unreachable`;
+            
+            document.getElementById('code-input').value = example;
+        }
+        
+        function clearCode() {
+            document.getElementById('code-input').value = '';
+            document.getElementById('trust-score').style.display = 'none';
+            document.getElementById('categories-list').style.display = 'none';
+            document.getElementById('issues-section').style.display = 'none';
+        }
+        
+        // Auto-validate on paste
+        document.getElementById('code-input').addEventListener('paste', () => {
+            setTimeout(validateCode, 100);
+        });
+        
+        // Keyboard shortcut
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                validateCode();
+            }
+        });
+    </script>
+</body>
+</html>

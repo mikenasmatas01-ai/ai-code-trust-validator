@@ -39,7 +39,7 @@ console = Console()
 
 
 @click.group()
-@click.version_option(version="0.2.0", prog_name="ai-trust-validator")
+@click.version_option(version="0.3.0", prog_name="ai-trust-validator")
 def main():
     """
     🛡️ AI Code Trust Validator - Trust your AI-generated code.
@@ -446,6 +446,99 @@ def _output_json(results: list[ValidationResult]):
     """Output results as JSON."""
     reporter = JSONReporter()
     print(reporter.generate(results))
+
+
+@main.command("analytics")
+@click.option("--days", "-d", default=30, help="Number of days to analyze")
+@click.option("--project", "-p", help="Filter by project")
+@click.option("--output", "-o", type=click.Path(), help="Export data to JSON")
+@click.option("--leaderboard", is_flag=True, help="Show leaderboard")
+def analytics(days: int, project: Optional[str], output: Optional[str], leaderboard: bool):
+    """View team analytics and statistics."""
+    from ai_trust_validator import AnalyticsDB, generate_analytics_report
+    
+    db = AnalyticsDB()
+    
+    if leaderboard:
+        console.print("[bold]🏆 Team Leaderboard[/bold]\n")
+        board = db.get_leaderboard(days=days)
+        
+        table = Table(show_header=True)
+        table.add_column("Rank", justify="right")
+        table.add_column("User")
+        table.add_column("Validations", justify="right")
+        table.add_column("Avg Score", justify="right")
+        table.add_column("Pass Rate", justify="right")
+        
+        for entry in board:
+            table.add_row(
+                str(entry["rank"]),
+                entry["user"],
+                str(entry["validations"]),
+                str(entry["avg_score"]),
+                f"{entry['pass_rate']}%"
+            )
+        
+        console.print(table)
+        return
+    
+    stats = db.get_stats(days=days, project=project)
+    
+    # Summary panel
+    console.print(Panel(
+        f"Validations: {stats.total_validations} | "
+        f"Avg Score: {stats.average_score} | "
+        f"Pass Rate: {stats.pass_rate}% | "
+        f"Critical Issues: {stats.critical_issues}",
+        title="📊 Analytics Summary"
+    ))
+    
+    # Category averages
+    if stats.category_averages:
+        console.print("\n[bold]Category Averages[/bold]")
+        table = Table(show_header=True)
+        table.add_column("Category")
+        table.add_column("Avg Score", justify="right")
+        
+        for cat, score in stats.category_averages.items():
+            table.add_row(cat.replace("_", " ").title(), str(score))
+        
+        console.print(table)
+    
+    # Project breakdown
+    if stats.project_breakdown:
+        console.print("\n[bold]📁 Projects[/bold]")
+        table = Table(show_header=True)
+        table.add_column("Project")
+        table.add_column("Validations", justify="right")
+        table.add_column("Avg Score", justify="right")
+        table.add_column("Critical", justify="right")
+        
+        for p in stats.project_breakdown[:10]:
+            table.add_row(
+                p["project"],
+                str(p["validations"]),
+                str(p["avg_score"]),
+                str(p["critical_issues"])
+            )
+        
+        console.print(table)
+    
+    # Export if requested
+    if output:
+        db.export_data(output, days=days)
+        console.print(f"\n[green]✓ Data exported to {output}[/green]")
+
+
+@main.command("lsp")
+def lsp():
+    """Start the LSP server for IDE integration."""
+    console.print("[bold]🚀 Starting LSP Server...[/bold]")
+    console.print("[dim]Connect your IDE to use AI Trust Validator in real-time.[/dim]")
+    console.print("[dim]Press Ctrl+C to stop.[/dim]\n")
+    
+    from ai_trust_validator.lsp_server import run_lsp_server
+    run_lsp_server()
 
 
 if __name__ == "__main__":

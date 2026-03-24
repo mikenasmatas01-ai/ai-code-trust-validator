@@ -7,6 +7,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/rudra496/ai-code-trust-validator.svg?style=social)](https://github.com/rudra496/ai-code-trust-validator/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/rudra496/ai-code-trust-validator.svg?style=social)](https://github.com/rudra496/ai-code-trust-validator/network/members)
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://github.com/rudra496/ai-code-trust-validator/pkgs/container/ai-code-trust-validator)
+[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visualstudiocode)](vscode-extension/)
 
 **Trust your AI-generated code before shipping to production.**
 
@@ -47,6 +48,8 @@ AI writes code fast, but that code often contains:
 | **⚡ Performance** | Intelligent caching, Incremental analysis, ~10,000+ lines/sec |
 | **🔌 Extensible** | Plugin system, Custom analyzers, Hook system |
 | **🐳 Deployment** | Docker, Docker Compose, GitHub Action, Pre-commit hooks |
+| **💻 IDE Integration** | VS Code extension, LSP server, JetBrains (coming soon) |
+| **📈 Team Analytics** | Dashboard, Leaderboards, Trend analysis, Project breakdown |
 
 ---
 
@@ -58,6 +61,9 @@ pip install ai-trust-validator
 
 # With server support
 pip install ai-trust-validator[server]
+
+# With all extras
+pip install ai-trust-validator[all]
 
 # From source
 git clone https://github.com/rudra496/ai-code-trust-validator.git
@@ -94,7 +100,7 @@ aitrust generate-tests module.py --output tests/test_module.py
 # Start API server
 aitrust serve --port 8080
 
-# Watch for changes
+# Watch for changes with live dashboard
 aitrust watch src/ --dashboard
 
 # Analyze dependencies
@@ -102,6 +108,12 @@ aitrust analyze-deps src/
 
 # Run benchmarks
 aitrust benchmark --iterations 100
+
+# View team analytics
+aitrust analytics --days 30
+
+# Start LSP server (for IDE integration)
+aitrust lsp
 ```
 
 ### Python API
@@ -125,6 +137,19 @@ for issue in result.critical_issues:
 config = Config(min_score=80, strict_mode=True)
 validator = Validator(config)
 result = validator.validate_code(code_string)
+
+# Multi-file analysis
+from ai_trust_validator import MultiFileAnalyzer
+analyzer = MultiFileAnalyzer(validator)
+result = analyzer.analyze_directory("src/")
+print(f"Circular deps: {result.circular_dependencies}")
+
+# Team analytics
+from ai_trust_validator import AnalyticsDB
+db = AnalyticsDB()
+db.record_validation("file.py", result, user="dev1", project="myapp")
+stats = db.get_stats(days=30)
+print(f"Team avg: {stats.average_score}")
 ```
 
 ### REST API
@@ -137,6 +162,22 @@ aitrust serve --port 8080
 curl -X POST http://localhost:8080/validate \
   -H "Content-Type: application/json" \
   -d '{"code": "def hello(): print(\"world\")"}'
+
+# Batch validation
+curl -X POST http://localhost:8080/validate/batch \
+  -H "Content-Type: application/json" \
+  -d '{"files": [{"name": "a.py", "code": "..."}]}'
+```
+
+### Web Dashboard
+
+```bash
+# Start server with dashboard
+aitrust serve --port 8080
+
+# Open browser to http://localhost:8080
+# Or serve the static dashboard
+cd dashboard && python -m http.server 3000
 ```
 
 ---
@@ -183,7 +224,9 @@ curl -X POST http://localhost:8080/validate \
 | `aitrust watch <path>` | Watch files for changes |
 | `aitrust benchmark` | Run performance benchmarks |
 | `aitrust analyze-deps <path>` | Multi-file dependency analysis |
+| `aitrust analytics` | View team analytics |
 | `aitrust cache <action>` | Manage validation cache |
+| `aitrust lsp` | Start LSP server for IDEs |
 
 ---
 
@@ -201,6 +244,7 @@ services:
     command: serve --port 8080
     volumes:
       - ./code:/code:ro
+      - ./.aitrust_cache:/app/.aitrust_cache
 ```
 
 ### GitHub Action
@@ -216,7 +260,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Validate AI Code
-        uses: rudra496/ai-code-trust-validator@v0.2.0
+        uses: rudra496/ai-code-trust-validator@v0.3.0
         with:
           path: 'src/'
           min-score: '75'
@@ -229,10 +273,44 @@ jobs:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/rudra496/ai-code-trust-validator
-    rev: v0.2.0
+    rev: v0.3.0
     hooks:
       - id: ai-trust-validator
         args: ['--min-score', '70']
+```
+
+---
+
+## 💻 IDE Integration
+
+### VS Code
+
+```bash
+# Install from VS Code Marketplace
+# Search for "AI Trust Validator"
+
+# Or install manually
+cd vscode-extension
+npm install
+npm run compile
+```
+
+Features:
+- Real-time diagnostics
+- Trust score in status bar
+- Quick fix suggestions
+- Hover information
+- Auto-validate on save
+
+### LSP Server (Neovim, Emacs, etc.)
+
+```bash
+# Start LSP server
+aitrust lsp
+
+# Configure in your LSP client
+# Command: aitrust lsp
+# Language: python
 ```
 
 ---
@@ -285,6 +363,8 @@ aitrust benchmark --iterations 1000
 
 ## 🗺️ Roadmap
 
+### Completed ✅
+
 - [x] Core validation engine
 - [x] Security analyzer
 - [x] Hallucination detector
@@ -302,13 +382,17 @@ aitrust benchmark --iterations 1000
 - [x] Multi-file analysis
 - [x] Watch mode
 - [x] Caching system
+- [x] LSP server
+- [x] VS Code extension
+- [x] Web dashboard
+- [x] Team analytics
+
+### Coming Soon 🚧
+
 - [ ] JavaScript/TypeScript support
-- [ ] AI-powered auto-fix
-- [ ] VS Code extension
-- [ ] JetBrains plugin
-- [ ] Web dashboard
-- [ ] Team analytics
-- [ ] LSP server
+- [ ] AI-powered auto-fix (LLM integration)
+- [ ] JetBrains plugin (IntelliJ, PyCharm)
+- [ ] Cloud hosted version
 
 ---
 

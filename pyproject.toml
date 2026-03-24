@@ -1,10 +1,10 @@
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+build-backend = "setuptools.build_main"
 
 [project]
 name = "ai-trust-validator"
-version = "0.2.0"
+version = "0.3.0"
 description = "Validate AI-generated code for security vulnerabilities, hallucinations, and logic errors"
 readme = "README.md"
 license = {text = "MIT"}
@@ -19,7 +19,7 @@ keywords = [
     "ai", "code-quality", "security", "validation", "llm", "chatgpt", 
     "copilot", "claude", "gpt", "static-analysis", "developer-tools",
     "machine-learning", "code-review", "testing", "hallucination",
-    "trust", "verification", "ast", "linter"
+    "trust", "verification", "ast", "linter", "vscode", "lsp"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,6 +39,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Security",
     "Typing :: Typed",
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
+    "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
     "click>=8.0",

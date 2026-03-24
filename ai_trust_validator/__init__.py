@@ -23,9 +23,11 @@ Features:
     - Test generation
     - Fix suggestions
     - Multiple report formats (JSON, HTML, SARIF)
+    - LSP server for IDE integration
+    - Team analytics
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __author__ = "Rudra Sarker"
 __email__ = "rudra496@users.noreply.github.com"
 __url__ = "https://github.com/rudra496/ai-code-trust-validator"
@@ -52,6 +54,8 @@ from ai_trust_validator.watcher import Watcher, watch_with_dashboard
 from ai_trust_validator.benchmark import BenchmarkSuite, run_full_benchmark
 from ai_trust_validator.multi_file import MultiFileAnalyzer, MultiFileResult
 from ai_trust_validator.api_server import run_server
+from ai_trust_validator.lsp_server import LSPServer, run_lsp_server
+from ai_trust_validator.analytics import AnalyticsDB, TeamStats, generate_analytics_report
 
 __all__ = [
     # Core
@@ -89,6 +93,11 @@ __all__ = [
     "MultiFileAnalyzer",
     "MultiFileResult",
     "run_server",
+    "LSPServer",
+    "run_lsp_server",
+    "AnalyticsDB",
+    "TeamStats",
+    "generate_analytics_report",
     
     # Metadata
     "__version__",
