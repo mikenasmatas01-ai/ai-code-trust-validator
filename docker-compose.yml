@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  validator:
+    build: .
+    ports:
+      - "8080:8080"
+    command: serve --port 8080 --host 0.0.0.0
+    volumes:
+      - ./code:/code:ro  # Mount code directory for validation
+      - ./.aitrust_cache:/app/.aitrust_cache  # Cache persistence
+    environment:
+      - AITRUST_MIN_SCORE=70
+      - AITRUST_STRICT=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+  # Optional: Dashboard UI
+  dashboard:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      - validator
+    profiles:
+      - dashboard

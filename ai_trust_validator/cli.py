@@ -3,14 +3,20 @@ CLI interface for AI Code Trust Validator.
 
 Commands:
     aitrust validate <path>     - Validate code and show trust score
-    aitrust report <path>       - Generate detailed report (JSON/HTML/SARIF)
-    aitrust suggest-fixes <path>- Show fix suggestions for issues
+    aitrust report <path>       - Generate detailed report
+    aitrust suggest-fixes <path>- Show fix suggestions
     aitrust generate-tests <path>- Generate pytest tests
+    aitrust serve               - Start REST API server
+    aitrust watch <path>        - Watch files for changes
+    aitrust benchmark           - Run performance benchmarks
+    aitrust analyze-deps <path> - Multi-file dependency analysis
+    aitrust cache               - Manage cache
 """
 
 import sys
 from pathlib import Path
 from typing import Optional
+import time
 
 import click
 from rich.console import Console
@@ -20,16 +26,20 @@ from rich.syntax import Syntax
 
 from ai_trust_validator import (
     Validator, Config, ValidationResult, Issue,
-    FixSuggester, TestGenerator,
+    FixSuggester, TestGenerator, CacheManager,
+    PluginManager, Watcher, watch_with_dashboard,
+    BenchmarkSuite, run_full_benchmark,
+    MultiFileAnalyzer, MultiFileResult,
     JSONReporter, HTMLReporter, SARIFReporter
 )
+from ai_trust_validator.api_server import run_server
 
 
 console = Console()
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="ai-trust-validator")
+@click.version_option(version="0.2.0", prog_name="ai-trust-validator")
 def main():
     """
     🛡️ AI Code Trust Validator - Trust your AI-generated code.
@@ -39,8 +49,8 @@ def main():
     Examples:
         aitrust validate src/ --min-score 75
         aitrust report src/ --format html --output report.html
-        aitrust suggest-fixes buggy_code.py
-        aitrust generate-tests module.py --output tests/
+        aitrust serve --port 8080
+        aitrust watch src/
     """
     pass
 
@@ -52,13 +62,15 @@ def main():
 @click.option("--strict", is_flag=True, help="Fail on any critical issues")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.option("--config", type=click.Path(exists=True), help="Path to config file")
+@click.option("--cache/--no-cache", default=True, help="Use caching")
 def validate(
     path: Optional[str],
     stdin: bool,
     min_score: int,
     strict: bool,
     json_output: bool,
-    config: Optional[str]
+    config: Optional[str],
+    cache: bool
 ):
     """
     Validate AI-generated code and produce a trust score.
@@ -74,6 +86,8 @@ def validate(
     cfg.min_score = min_score
     cfg.strict_mode = strict or cfg.strict_mode
 
+    # Initialize cache
+    cache_mgr = CacheManager(enabled=cache)
     validator = Validator(cfg)
 
     # Get source
@@ -211,6 +225,147 @@ def generate_tests(path: str, output: Optional[str], module: str):
         console.print(test_code)
 
 
+@main.command("serve")
+@click.option("--port", "-p", default=8080, help="Server port")
+@click.option("--host", "-h", default="0.0.0.0", help="Server host")
+def serve(port: int, host: str):
+    """Start the REST API server."""
+    run_server(port=port, host=host)
+
+
+@main.command("watch")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--refresh", "-r", default=2.0, help="Refresh rate in seconds")
+@click.option("--dashboard", is_flag=True, help="Show live dashboard")
+def watch(path: str, refresh: float, dashboard: bool):
+    """Watch files for changes and re-validate."""
+    validator = Validator()
+    
+    if dashboard:
+        watch_with_dashboard(path, validator, refresh_rate=refresh)
+    else:
+        watcher = Watcher(validator)
+        
+        def on_change(result, file_path):
+            score = result.trust_score
+            icon = "✅" if score >= 80 else "⚠️" if score >= 60 else "❌"
+            console.print(f"{icon} {file_path}: Score {score}/100")
+            if result.critical_issues:
+                for issue in result.critical_issues[:3]:
+                    console.print(f"   [red]• {issue.message}[/red]")
+        
+        watcher.watch(path, on_change=on_change)
+
+
+@main.command("benchmark")
+@click.option("--iterations", "-i", default=100, help="Number of iterations")
+@click.option("--output", "-o", type=click.Path(), help="Output file for results")
+def benchmark(iterations: int, output: Optional[str]):
+    """Run performance benchmarks."""
+    from ai_trust_validator import Validator
+    
+    console.print("[bold]🏃 Running benchmarks...[/bold]\n")
+    
+    validator = Validator()
+    suite = BenchmarkSuite(validator)
+    
+    # Run performance benchmark
+    results = suite.run_performance_benchmark(iterations=iterations)
+    
+    # Display results
+    table = Table(title="📊 Benchmark Results")
+    table.add_column("Sample", style="cyan")
+    table.add_column("Avg (ms)", justify="right")
+    table.add_column("Min (ms)", justify="right")
+    table.add_column("Max (ms)", justify="right")
+    table.add_column("Lines/sec", justify="right")
+    
+    for name, result in results.items():
+        table.add_row(
+            name,
+            f"{result.avg_time_ms:.2f}",
+            f"{result.min_time_ms:.2f}",
+            f"{result.max_time_ms:.2f}",
+            f"{result.lines_per_second:.0f}"
+        )
+    
+    console.print(table)
+    
+    # Save if requested
+    if output:
+        suite.save_results(output)
+        console.print(f"\n[green]✓ Results saved to {output}[/green]")
+
+
+@main.command("analyze-deps")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file for report")
+def analyze_deps(path: str, output: Optional[str]):
+    """Analyze multi-file dependencies."""
+    from ai_trust_validator import MultiFileAnalyzer, Validator
+    
+    console.print(f"[bold]🔍 Analyzing dependencies in {path}...[/bold]\n")
+    
+    analyzer = MultiFileAnalyzer(validator=Validator())
+    result = analyzer.analyze_directory(path)
+    
+    # Summary
+    console.print(Panel(
+        f"Modules: {len(result.modules)} | "
+        f"Overall Score: {result.overall_score}/100",
+        title="📊 Summary"
+    ))
+    
+    # Circular dependencies
+    if result.circular_dependencies:
+        console.print("\n[red]⚠️ Circular Dependencies:[/red]")
+        for a, b in result.circular_dependencies:
+            console.print(f"  • {a} ↔ {b}")
+    else:
+        console.print("\n[green]✓ No circular dependencies[/green]")
+    
+    # Unused modules
+    if result.unused_modules:
+        console.print(f"\n[yellow]📦 Unused Modules ({len(result.unused_modules)}):[/yellow]")
+        for m in result.unused_modules[:10]:
+            console.print(f"  • {m}")
+    
+    # Import issues
+    if result.import_issues:
+        console.print(f"\n[yellow]⚠️ Import Issues ({len(result.import_issues)}):[/yellow]")
+        for issue in result.import_issues[:5]:
+            console.print(f"  • {issue['message']}")
+    
+    # Generate report
+    if output:
+        report = analyzer.generate_dependency_report()
+        Path(output).write_text(report, encoding="utf-8")
+        console.print(f"\n[green]✓ Report saved to {output}[/green]")
+
+
+@main.command("cache")
+@click.argument("action", type=click.Choice(["stats", "clear", "cleanup"]))
+def cache(action: str):
+    """Manage the validation cache."""
+    cache_mgr = CacheManager()
+    
+    if action == "stats":
+        stats = cache_mgr.stats()
+        console.print("[bold]📦 Cache Statistics[/bold]\n")
+        console.print(f"Memory entries: {stats['memory_entries']}")
+        console.print(f"Disk entries: {stats['disk_entries']}")
+        console.print(f"Total size: {stats['total_size_mb']} MB")
+        console.print(f"Cache dir: {stats['cache_dir']}")
+    
+    elif action == "clear":
+        cache_mgr.clear()
+        console.print("[green]✓ Cache cleared[/green]")
+    
+    elif action == "cleanup":
+        removed = cache_mgr.cleanup_expired()
+        console.print(f"[green]✓ Removed {removed} expired entries[/green]")
+
+
 def _output_rich(results: list[ValidationResult], cfg: Config):
     """Pretty print results using Rich."""
     for result in results:
@@ -264,16 +419,6 @@ def _output_rich(results: list[ValidationResult], cfg: Config):
                 console.print(f"  [{_severity_color(issue.severity)}]{issue.severity.upper()}[/{_severity_color(issue.severity)}] {line_info}{issue.message}")
                 if issue.suggestion:
                     console.print(f"    💡 {issue.suggestion}")
-            console.print()
-
-        # Suggestions
-        if result.all_issues:
-            console.print("💡 Top Suggestions:\n")
-            seen = set()
-            for issue in result.all_issues[:3]:
-                if issue.suggestion and issue.suggestion not in seen:
-                    console.print(f"  • {issue.suggestion}")
-                    seen.add(issue.suggestion)
             console.print()
 
         # Pass/fail

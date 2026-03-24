@@ -1,0 +1,33 @@
+# Pre-commit hook for AI Code Trust Validator
+# Add to your .pre-commit-config.yaml:
+#
+# repos:
+#   - repo: https://github.com/rudra496/ai-code-trust-validator
+#     rev: v0.1.0
+#     hooks:
+#       - id: ai-trust-validator
+#         args: ['--min-score', '70']
+
+- id: ai-trust-validator
+  name: AI Code Trust Validator
+  description: Validate AI-generated code for security, hallucinations, and logic errors
+  entry: aitrust validate
+  language: python
+  types: [python]
+  args: ['--min-score', '70']
+  require_serial: true
+  additional_dependencies: ['ai-trust-validator']
+  pass_filenames: true
+  verbose: true
+
+- id: ai-trust-validator-strict
+  name: AI Code Trust Validator (Strict)
+  description: Strict validation - fail on any critical issues
+  entry: aitrust validate
+  language: python
+  types: [python]
+  args: ['--min-score', '80', '--strict']
+  require_serial: true
+  additional_dependencies: ['ai-trust-validator']
+  pass_filenames: true
+  verbose: true

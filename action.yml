@@ -1,0 +1,105 @@
+name: 'AI Code Trust Validator'
+description: 'Validate AI-generated code for security vulnerabilities, hallucinations, and logic errors'
+author: 'Rudra Sarker'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'File or directory to validate'
+    required: false
+    default: '.'
+  min-score:
+    description: 'Minimum trust score to pass (0-100)'
+    required: false
+    default: '70'
+  strict:
+    description: 'Fail on any critical issues'
+    required: false
+    default: 'false'
+  fail-on-low:
+    description: 'Fail if score is below minimum'
+    required: false
+    default: 'true'
+  format:
+    description: 'Output format (text, json, sarif)'
+    required: false
+    default: 'text'
+  output-file:
+    description: 'Output file path for report'
+    required: false
+    default: 'trust-report.json'
+  exclude:
+    description: 'Comma-separated patterns to exclude'
+    required: false
+    default: 'tests/*,migrations/*,vendor/*'
+
+outputs:
+  trust-score:
+    description: 'Overall trust score'
+    value: ${{ steps.validate.outputs.score }}
+  passed:
+    description: 'Whether validation passed'
+    value: ${{ steps.validate.outputs.passed }}
+  critical-count:
+    description: 'Number of critical issues'
+    value: ${{ steps.validate.outputs.critical }}
+  report-file:
+    description: 'Path to generated report'
+    value: ${{ steps.validate.outputs.report }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install AI Trust Validator
+      shell: bash
+      run: |
+        pip install ai-trust-validator || pip install git+https://github.com/rudra496/ai-code-trust-validator.git
+    
+    - name: Run Validation
+      id: validate
+      shell: bash
+      run: |
+        # Run validation
+        aitrust validate ${{ inputs.path }} \
+          --min-score ${{ inputs.min-score }} \
+          ${{ inputs.strict == 'true' && '--strict' || '' }} \
+          ${{ inputs.format == 'json' && '--json' || '' }} \
+          > ${{ inputs.output-file }} 2>&1 || true
+        
+        # Extract metrics
+        SCORE=$(cat ${{ inputs.output-file }} | grep -oP 'Trust Score: \K\d+' || echo "0")
+        CRITICAL=$(cat ${{ inputs.output-file }} | grep -oP 'Critical Issues: \K\d+' || echo "0")
+        
+        # Check if passed
+        if [ "$SCORE" -ge "${{ inputs.min-score }}" ] && [ "$CRITICAL" -eq 0 ]; then
+          PASSED="true"
+        else
+          PASSED="false"
+        fi
+        
+        echo "score=$SCORE" >> $GITHUB_OUTPUT
+        echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "report=${{ inputs.output-file }}" >> $GITHUB_OUTPUT
+        
+        # Show results
+        cat ${{ inputs.output-file }}
+        
+        # Fail if needed
+        if [ "${{ inputs.fail-on-low }}" == "true" ] && [ "$PASSED" == "false" ]; then
+          exit 1
+        fi
+    
+    - name: Upload Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: trust-report
+        path: ${{ inputs.output-file }}

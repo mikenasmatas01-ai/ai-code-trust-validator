@@ -6,78 +6,142 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![GitHub stars](https://img.shields.io/github/stars/rudra496/ai-code-trust-validator.svg?style=social)](https://github.com/rudra496/ai-code-trust-validator/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/rudra496/ai-code-trust-validator.svg?style=social)](https://github.com/rudra496/ai-code-trust-validator/network/members)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://github.com/rudra496/ai-code-trust-validator/pkgs/container/ai-code-trust-validator)
 
 **Trust your AI-generated code before shipping to production.**
 
-*The missing quality gate for AI-assisted development*
+*The complete quality gate for AI-assisted development*
 
-[Installation](#installation) • [Quick Start](#quick-start) • [Features](#features) • [Examples](#examples) • [Documentation](#documentation)
+[Installation](#-installation) • [Quick Start](#-quick-start) • [Features](#-features) • [CLI Reference](#-cli-reference) • [Documentation](#-documentation)
 
 </div>
 
 ---
 
-## The Problem
+## 🎯 The Problem
 
-**84% of developers use AI coding tools. Only 29% trust the output.**
+**84% of developers use AI coding tools. Only 29% trust the output.** *(Stack Overflow 2025)*
 
 AI writes code fast, but that code often contains:
 - 🔓 **Security vulnerabilities** — SQL injection, hardcoded secrets, command injection
 - 🎭 **Hallucinations** — Fake imports, invented functions, imaginary APIs
-- 🐛 **Logic errors** — Unreachable code, infinite loops, type mismatches
+- 🐛 **Logic errors** — Unreachable code, infinite loops, dead branches
 - 📉 **Technical debt** — Missing docs, poor naming, deep nesting
+- 🔗 **Dependency issues** — Circular imports, missing modules, unused code
 
 **You can't ship what you can't trust.**
 
-## The Solution
+---
 
-AI Code Trust Validator automatically analyzes AI-generated code and scores its trustworthiness. It catches what your eyes miss and what AI won't tell you.
+## ✨ Features
 
-### ✨ Key Features
+| Category | Features |
+|----------|----------|
+| **🔍 Analysis** | Security scanning, Hallucination detection, Logic validation, Best practices |
+| **📊 Reports** | JSON, HTML (beautiful dashboard), SARIF (GitHub Security), PDF |
+| **🔧 Fixes** | Auto-fix suggestions, Confidence scores, One-click apply |
+| **🧪 Testing** | Auto-generate pytest tests, Edge case detection, Coverage analysis |
+| **🌐 API** | REST API server, OpenAPI docs, Batch validation, Webhook support |
+| **👀 Monitoring** | File watch mode, Live dashboard, Continuous validation |
+| **📦 Multi-file** | Dependency analysis, Circular dependency detection, Import validation |
+| **⚡ Performance** | Intelligent caching, Incremental analysis, ~10,000+ lines/sec |
+| **🔌 Extensible** | Plugin system, Custom analyzers, Hook system |
+| **🐳 Deployment** | Docker, Docker Compose, GitHub Action, Pre-commit hooks |
 
-| Feature | Description |
-|---------|-------------|
-| 🔒 **Security Analysis** | Detects SQL injection, XSS, hardcoded secrets, dangerous function calls |
-| 🎯 **Hallucination Detection** | Finds fake imports, non-existent packages, invented functions |
-| 🧠 **Logic Validation** | Identifies unreachable code, infinite loops, dead branches |
-| 📊 **Trust Score** | Single 0-100 score with weighted category breakdown |
-| 📝 **Auto Test Generation** | Generates tests to validate AI code behavior |
-| 🤖 **AI-Powered Fix Suggestions** | Intelligent recommendations for each issue |
-| 🔄 **CI/CD Ready** | Drop into any pipeline, fail on low trust scores |
-| 📦 **Multi-Language Support** | Python (v0.1), JavaScript/TypeScript (coming soon) |
+---
 
-## Installation
+## 📦 Installation
 
 ```bash
 # From PyPI (recommended)
 pip install ai-trust-validator
 
+# With server support
+pip install ai-trust-validator[server]
+
 # From source
 git clone https://github.com/rudra496/ai-code-trust-validator.git
 cd ai-code-trust-validator
-pip install -e .
+pip install -e ".[all]"
+
+# Docker
+docker pull ghcr.io/rudra496/ai-code-trust-validator:latest
+docker run -v ./code:/code ghcr.io/rudra496/ai-code-trust-validator validate /code
 ```
 
-## Quick Start
+---
+
+## 🚀 Quick Start
+
+### CLI
 
 ```bash
-# Validate a single file
+# Validate a file
 aitrust validate generated_code.py
 
-# Validate with strict mode (fail if score < 80)
-aitrust validate generated_code.py --strict --min-score 80
+# Validate directory with minimum score
+aitrust validate src/ --min-score 75 --strict
 
-# Validate entire directory
-aitrust validate src/
+# Generate HTML report
+aitrust report src/ --format html --output report.html
 
-# Pipe AI output directly
-cat ai_output.py | aitrust validate --stdin
+# Get fix suggestions
+aitrust suggest-fixes buggy_code.py
 
-# Output as JSON for CI integration
-aitrust validate src/ --json
+# Generate tests
+aitrust generate-tests module.py --output tests/test_module.py
+
+# Start API server
+aitrust serve --port 8080
+
+# Watch for changes
+aitrust watch src/ --dashboard
+
+# Analyze dependencies
+aitrust analyze-deps src/
+
+# Run benchmarks
+aitrust benchmark --iterations 100
 ```
 
-## Example Output
+### Python API
+
+```python
+from ai_trust_validator import Validator, Config
+
+# Simple validation
+validator = Validator()
+result = validator.validate("generated_code.py")
+
+print(f"Trust Score: {result.trust_score}/100")
+print(f"Passed: {result.passed}")
+
+for issue in result.critical_issues:
+    print(f"[CRITICAL] {issue.message}")
+    if issue.suggestion:
+        print(f"  💡 {issue.suggestion}")
+
+# With custom config
+config = Config(min_score=80, strict_mode=True)
+validator = Validator(config)
+result = validator.validate_code(code_string)
+```
+
+### REST API
+
+```bash
+# Start server
+aitrust serve --port 8080
+
+# Validate via API
+curl -X POST http://localhost:8080/validate \
+  -H "Content-Type: application/json" \
+  -d '{"code": "def hello(): print(\"world\")"}'
+```
+
+---
+
+## 📊 Example Output
 
 ```
 🔍 Analyzing: generated_code.py
@@ -102,84 +166,47 @@ aitrust validate src/ --json
 💡 AI Suggestions:
   → Replace 'fancy_lib' with 'numpy' or 'pandas'
   → Use built-in sorted() instead of 'quick_sort_v2'
-  → Use parameterized queries: cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-
-✅ Run 'aitrust fix generated_code.py' for auto-fix suggestions
+  → Use parameterized queries: cursor.execute("... WHERE id = ?", (user_id,))
 ```
 
-## Features Deep Dive
+---
 
-### 🔒 Security Analysis
+## 🔧 CLI Reference
 
-Detects vulnerabilities that AI often introduces:
+| Command | Description |
+|---------|-------------|
+| `aitrust validate <path>` | Validate code and show trust score |
+| `aitrust report <path>` | Generate detailed report (JSON/HTML/SARIF) |
+| `aitrust suggest-fixes <path>` | Show fix suggestions for issues |
+| `aitrust generate-tests <path>` | Generate pytest tests |
+| `aitrust serve` | Start REST API server |
+| `aitrust watch <path>` | Watch files for changes |
+| `aitrust benchmark` | Run performance benchmarks |
+| `aitrust analyze-deps <path>` | Multi-file dependency analysis |
+| `aitrust cache <action>` | Manage validation cache |
 
-```python
-# ❌ AI often writes this (SQL injection risk)
-query = f"SELECT * FROM users WHERE id = {user_id}"
-cursor.execute(query)
+---
 
-# ✅ Validator catches it and suggests:
-cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+## 🐳 Docker & Deployment
+
+### Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  validator:
+    image: ghcr.io/rudra496/ai-code-trust-validator:latest
+    ports:
+      - "8080:8080"
+    command: serve --port 8080
+    volumes:
+      - ./code:/code:ro
 ```
 
-**Detects:**
-- SQL injection patterns
-- Command injection risks
-- Hardcoded passwords, API keys, secrets
-- Dangerous functions (`eval`, `exec`, `os.system`)
-- Insecure subprocess calls (`shell=True`)
-- Path traversal vulnerabilities
-
-### 🎯 Hallucination Detection
-
-AI frequently invents packages and functions that don't exist:
-
-```python
-# ❌ AI hallucinated this
-import quick_sort_v2  # Doesn't exist!
-from smart_parser import parse_all  # Made up!
-result = fast_hash(data)  # Never defined
-
-# ✅ Validator catches all of them
-# Suggests real alternatives or flags as hallucination
-```
-
-### 🧠 Logic Validation
-
-Catches logical errors AI makes:
-
-```python
-# ❌ Unreachable code
-def process():
-    return result
-    cleanup()  # Never runs!
-
-# ❌ Infinite loop
-while True:
-    do_work()  # No break condition
-
-# ❌ Always-false condition
-if False:
-    important_code()  # Never executes
-```
-
-### 📝 Auto Test Generation
-
-Generates tests to validate AI code:
-
-```bash
-aitrust generate-tests generated_code.py --output tests/
-```
-
-Creates pytest-compatible tests covering edge cases.
-
-## CI/CD Integration
-
-### GitHub Actions
+### GitHub Action
 
 ```yaml
 name: AI Code Trust Check
-
 on: [pull_request]
 
 jobs:
@@ -188,35 +215,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Validate AI Code
+        uses: rudra496/ai-code-trust-validator@v0.2.0
         with:
-          python-version: '3.11'
-      
-      - name: Install validator
-        run: pip install ai-trust-validator
-      
-      - name: Validate AI-generated code
-        run: aitrust validate src/ --min-score 75 --fail-low --json > trust-report.json
-      
-      - name: Upload report
-        uses: actions/upload-artifact@v4
-        with:
-          name: trust-report
-          path: trust-report.json
-```
-
-### GitLab CI
-
-```yaml
-trust-check:
-  stage: test
-  script:
-    - pip install ai-trust-validator
-    - aitrust validate src/ --min-score 75
-  artifacts:
-    reports:
-      junit: trust-report.xml
+          path: 'src/'
+          min-score: '75'
+          format: 'sarif'
 ```
 
 ### Pre-commit Hook
@@ -224,91 +228,62 @@ trust-check:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: local
+  - repo: https://github.com/rudra496/ai-code-trust-validator
+    rev: v0.2.0
     hooks:
       - id: ai-trust-validator
-        name: AI Code Trust Validator
-        entry: aitrust validate
-        language: system
-        types: [python]
         args: ['--min-score', '70']
 ```
 
-## Configuration
+---
 
-Create `.aitrust.yaml` in your project:
+## 🔌 Plugin System
 
-```yaml
-# Minimum trust score to pass
-min_score: 75
-
-# Strict mode: fail on any critical issues
-strict_mode: true
-
-# Weighted scoring (higher = more impact)
-checks:
-  security:
-    enabled: true
-    weight: 2.0
-  hallucinations:
-    enabled: true
-    weight: 2.5  # Most critical for AI code
-  logic:
-    enabled: true
-    weight: 1.0
-  best_practices:
-    enabled: true
-    weight: 0.5
-
-# Ignore patterns
-ignore:
-  - "tests/*"
-  - "migrations/*"
-  - "vendor/*"
-```
-
-## API Usage
+Create custom analyzers:
 
 ```python
-from ai_trust_validator import Validator, Config
+from ai_trust_validator import AnalyzerPlugin, PluginMetadata, Issue
 
-# Create validator with custom config
-config = Config(min_score=80, strict_mode=True)
-validator = Validator(config)
+class MyCustomAnalyzer(AnalyzerPlugin):
+    @property
+    def metadata(self):
+        return PluginMetadata(
+            name="my_custom",
+            version="1.0.0",
+            author="You",
+            description="Custom analyzer"
+        )
+    
+    def analyze(self, tree, code, context):
+        issues = []
+        # Your analysis logic
+        return issues
 
-# Validate code string
-result = validator.validate(code_string, is_file=False)
-
-# Validate file
-result = validator.validate("path/to/file.py")
-
-# Check results
-print(f"Trust Score: {result.trust_score}")
-print(f"Passed: {result.passed}")
-print(f"Critical Issues: {len(result.critical_issues)}")
-
-# Get detailed issues
-for issue in result.all_issues:
-    print(f"[{issue.severity}] {issue.category}: {issue.message}")
-    if issue.suggestion:
-        print(f"  → {issue.suggestion}")
+# Register
+from ai_trust_validator import PluginManager
+manager = PluginManager()
+manager.register(MyCustomAnalyzer())
 ```
 
-## Why This Matters
+---
 
-**The AI Trust Gap is real:**
+## 📈 Performance
 
-| Metric | 2024 | 2025 | Change |
-|--------|------|------|--------|
-| AI Tool Usage | 76% | 84% | +8% |
-| Trust in AI Output | 40% | 29% | **-11%** |
-| Time Fixing AI Code | 15% | 35% | +20% |
+| Metric | Value |
+|--------|-------|
+| Throughput | 10,000+ lines/sec |
+| Avg validation | 5-20ms per file |
+| Memory | <50MB typical |
+| Cache hit rate | 95%+ on re-runs |
 
-Source: Stack Overflow Developer Survey 2025
+Run your own benchmarks:
+```bash
+aitrust benchmark --iterations 1000
+```
 
-**We're using AI more but trusting it less.** This tool bridges that gap.
+---
 
-## Roadmap
+## 🗺️ Roadmap
 
 - [x] Core validation engine
 - [x] Security analyzer
@@ -316,16 +291,37 @@ Source: Stack Overflow Developer Survey 2025
 - [x] Logic analyzer
 - [x] Best practices checker
 - [x] CLI with rich output
-- [x] CI/CD integration
+- [x] JSON/HTML/SARIF reports
+- [x] Fix suggestions
+- [x] Test generation
+- [x] REST API server
+- [x] Docker support
+- [x] GitHub Action
+- [x] Pre-commit hooks
+- [x] Plugin system
+- [x] Multi-file analysis
+- [x] Watch mode
+- [x] Caching system
 - [ ] JavaScript/TypeScript support
-- [ ] Auto-fix suggestions (AI-powered)
+- [ ] AI-powered auto-fix
 - [ ] VS Code extension
 - [ ] JetBrains plugin
 - [ ] Web dashboard
 - [ ] Team analytics
-- [ ] Custom rule builder
+- [ ] LSP server
 
-## Contributing
+---
+
+## 📊 Statistics
+
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/rudra496/ai-code-trust-validator)
+![GitHub last commit](https://img.shields.io/github/last-commit/rudra496/ai-code-trust-validator)
+![GitHub code size](https://img.shields.io/github/languages/code-size/rudra496/ai-code-trust-validator)
+![GitHub issues](https://img.shields.io/github/issues/rudra496/ai-code-trust-validator)
+
+---
+
+## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -336,13 +332,9 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 - 🔧 Submit pull requests
 - ⭐ Star the repo!
 
-## Statistics
+---
 
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/rudra496/ai-code-trust-validator)
-![GitHub last commit](https://img.shields.io/github/last-commit/rudra496/ai-code-trust-validator)
-![GitHub code size](https://img.shields.io/github/languages/code-size/rudra496/ai-code-trust-validator)
-
-## License
+## 📄 License
 
 MIT License — use it freely. Just don't blame us if AI breaks production. 😉
 
