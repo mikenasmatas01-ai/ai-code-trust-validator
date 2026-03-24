@@ -1,10 +1,11 @@
 """
-CLI interface for AI Trust Validator.
+CLI interface for AI Code Trust Validator.
 
-Usage:
-    aitrust validate <file>
-    aitrust validate <directory>
-    cat code.py | aitrust validate --stdin
+Commands:
+    aitrust validate <path>     - Validate code and show trust score
+    aitrust report <path>       - Generate detailed report (JSON/HTML/SARIF)
+    aitrust suggest-fixes <path>- Show fix suggestions for issues
+    aitrust generate-tests <path>- Generate pytest tests
 """
 
 import sys
@@ -17,17 +18,30 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.syntax import Syntax
 
-from ai_trust_validator import Validator, Config, ValidationResult
-from ai_trust_validator.validator import Issue
+from ai_trust_validator import (
+    Validator, Config, ValidationResult, Issue,
+    FixSuggester, TestGenerator,
+    JSONReporter, HTMLReporter, SARIFReporter
+)
 
 
 console = Console()
 
 
 @click.group()
-@click.version_option()
+@click.version_option(version="0.1.0", prog_name="ai-trust-validator")
 def main():
-    """AI Code Trust Validator - Trust your AI-generated code."""
+    """
+    🛡️ AI Code Trust Validator - Trust your AI-generated code.
+    
+    Validate AI-generated code for security, hallucinations, and logic errors.
+    
+    Examples:
+        aitrust validate src/ --min-score 75
+        aitrust report src/ --format html --output report.html
+        aitrust suggest-fixes buggy_code.py
+        aitrust generate-tests module.py --output tests/
+    """
     pass
 
 
@@ -94,6 +108,107 @@ def validate(
     )
     if not all_passed:
         sys.exit(1)
+
+
+@main.command("report")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--format", "report_format", type=click.Choice(["json", "html", "sarif"]), default="html", help="Report format")
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--min-score", default=70, help="Minimum trust score to pass")
+def report(path: str, report_format: str, output: Optional[str], min_score: int):
+    """Generate a detailed report in JSON, HTML, or SARIF format."""
+    path_obj = Path(path)
+    cfg = Config.find_and_load()
+    cfg.min_score = min_score
+    validator = Validator(cfg)
+
+    if path_obj.is_file():
+        results = [validator.validate(path_obj)]
+    else:
+        results = validator.validate_directory(path_obj)
+
+    # Generate report
+    if report_format == "json":
+        reporter = JSONReporter()
+        content = reporter.generate(results)
+        default_output = "trust-report.json"
+    elif report_format == "html":
+        reporter = HTMLReporter()
+        content = reporter.generate(results)
+        default_output = "trust-report.html"
+    elif report_format == "sarif":
+        reporter = SARIFReporter()
+        content = reporter.generate(results)
+        default_output = "trust-report.sarif.json"
+
+    # Write output
+    output_path = output or default_output
+    Path(output_path).write_text(content, encoding="utf-8")
+    console.print(f"[green]✓ Report saved to {output_path}[/green]")
+
+
+@main.command("suggest-fixes")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--apply", is_flag=True, help="Show diff of suggested fixes")
+def suggest_fixes(path: str, apply: bool):
+    """Generate fix suggestions for detected issues."""
+    path_obj = Path(path)
+    code = path_obj.read_text(encoding="utf-8")
+    
+    cfg = Config.find_and_load()
+    validator = Validator(cfg)
+    result = validator.validate(path_obj)
+
+    if not result.all_issues:
+        console.print("[green]✓ No issues found - nothing to fix![/green]")
+        return
+
+    suggester = FixSuggester()
+    fixes = suggester.suggest_fixes(result, code)
+
+    if not fixes:
+        console.print("[yellow]No automatic fixes available for the detected issues.[/yellow]")
+        return
+
+    console.print(f"\n💡 [bold]Fix Suggestions for {path}[/bold]\n")
+
+    for fix in fixes:
+        severity = fix.issue.severity.upper()
+        color = _severity_color(fix.issue.severity)
+        
+        console.print(f"[{color}]{severity}[/{color}] {fix.issue.message}")
+        if fix.issue.line:
+            console.print(f"  [dim]Line {fix.issue.line}[/dim]")
+        
+        console.print(f"\n  [dim]Original:[/dim]")
+        console.print(f"  {fix.original_code}")
+        
+        console.print(f"\n  [green]Suggested:[/green]")
+        for line in fix.suggested_fix.split("\n"):
+            console.print(f"  {line}")
+        
+        console.print(f"\n  [dim]Confidence: {fix.confidence:.0%} | Auto-applicable: {'Yes' if fix.auto_applicable else 'No'}[/dim]")
+        console.print()
+
+
+@main.command("generate-tests")
+@click.argument("path", type=click.Path(exists=True))
+@click.option("--output", "-o", type=click.Path(), help="Output file path")
+@click.option("--module", "-m", default="module", help="Module name for imports")
+def generate_tests(path: str, output: Optional[str], module: str):
+    """Generate pytest tests for a Python file."""
+    path_obj = Path(path)
+    code = path_obj.read_text(encoding="utf-8")
+
+    generator = TestGenerator()
+    test_code = generator.generate_tests(code, module)
+
+    if output:
+        output_path = Path(output)
+        output_path.write_text(test_code, encoding="utf-8")
+        console.print(f"[green]✓ Tests saved to {output_path}[/green]")
+    else:
+        console.print(test_code)
 
 
 def _output_rich(results: list[ValidationResult], cfg: Config):
@@ -184,36 +299,8 @@ def _severity_color(severity: str) -> str:
 
 def _output_json(results: list[ValidationResult]):
     """Output results as JSON."""
-    import json
-
-    data = []
-    for result in results:
-        data.append({
-            "file_path": result.file_path,
-            "trust_score": result.trust_score,
-            "passed": result.passed,
-            "critical_issues": len(result.critical_issues),
-            "categories": {
-                name: {
-                    "score": cat.score,
-                    "weight": cat.weight,
-                    "issue_count": len(cat.issues)
-                }
-                for name, cat in result.categories.items()
-            },
-            "issues": [
-                {
-                    "severity": i.severity,
-                    "category": i.category,
-                    "message": i.message,
-                    "line": i.line,
-                    "suggestion": i.suggestion
-                }
-                for i in result.all_issues
-            ]
-        })
-
-    print(json.dumps(data, indent=2))
+    reporter = JSONReporter()
+    print(reporter.generate(results))
 
 
 if __name__ == "__main__":

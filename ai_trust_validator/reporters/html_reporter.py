@@ -1,0 +1,191 @@
+"""
+HTML Reporter - Generate beautiful HTML reports for sharing.
+"""
+
+from typing import List
+from ai_trust_validator.validator import ValidationResult
+
+
+class HTMLReporter:
+    """Generate HTML reports from validation results."""
+
+    def generate(self, results: List[ValidationResult], title: str = "AI Code Trust Report") -> str:
+        """Generate HTML report."""
+        summary = self._generate_summary(results)
+        
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e4;
+            min-height: 100vh;
+            padding: 2rem;
+        }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+        h1 {{ 
+            text-align: center; 
+            font-size: 2.5rem; 
+            margin-bottom: 2rem;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }}
+        .summary {{ 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 1rem; 
+            margin-bottom: 2rem;
+        }}
+        .stat-card {{ 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 12px; 
+            padding: 1.5rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }}
+        .stat-value {{ font-size: 2.5rem; font-weight: bold; }}
+        .stat-label {{ color: #888; margin-top: 0.5rem; }}
+        .score-good {{ color: #00ff88; }}
+        .score-warn {{ color: #ffaa00; }}
+        .score-bad {{ color: #ff4444; }}
+        .result-card {{ 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 12px; 
+            padding: 1.5rem; 
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }}
+        .result-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }}
+        .file-path {{ font-family: monospace; color: #00d9ff; }}
+        .trust-badge {{ 
+            padding: 0.5rem 1rem; 
+            border-radius: 20px; 
+            font-weight: bold;
+        }}
+        .badge-good {{ background: rgba(0,255,136,0.2); color: #00ff88; }}
+        .badge-warn {{ background: rgba(255,170,0,0.2); color: #ffaa00; }}
+        .badge-bad {{ background: rgba(255,68,68,0.2); color: #ff4444; }}
+        .issue {{ 
+            background: rgba(255,255,255,0.03); 
+            padding: 1rem; 
+            border-radius: 8px; 
+            margin-top: 0.5rem;
+            border-left: 3px solid;
+        }}
+        .issue-critical {{ border-color: #ff4444; }}
+        .issue-high {{ border-color: #ff8800; }}
+        .issue-medium {{ border-color: #ffaa00; }}
+        .issue-low {{ border-color: #00d9ff; }}
+        .severity {{ font-weight: bold; text-transform: uppercase; font-size: 0.75rem; }}
+        .severity-critical {{ color: #ff4444; }}
+        .severity-high {{ color: #ff8800; }}
+        .severity-medium {{ color: #ffaa00; }}
+        .severity-low {{ color: #00d9ff; }}
+        .suggestion {{ color: #00ff88; margin-top: 0.5rem; font-size: 0.9rem; }}
+        .line-num {{ color: #888; font-size: 0.85rem; }}
+        footer {{ text-align: center; margin-top: 3rem; color: #666; }}
+        a {{ color: #00d9ff; text-decoration: none; }}
+        a:hover {{ text-decoration: underline; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ {title}</h1>
+        
+        <div class="summary">
+            <div class="stat-card">
+                <div class="stat-value {self._score_class(summary['average_score'])}">{summary['average_score']}</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{summary['total_files']}</div>
+                <div class="stat-label">Files Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-good">{summary['passed']}</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-bad">{summary['failed']}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value score-bad">{summary['critical_issues']}</div>
+                <div class="stat-label">Critical Issues</div>
+            </div>
+        </div>
+
+        {self._generate_results_html(results)}
+
+        <footer>
+            <p>Generated by <a href="https://github.com/rudra496/ai-code-trust-validator">AI Code Trust Validator</a></p>
+            <p>Created by <a href="https://rudra496.github.io/site">Rudra Sarker</a></p>
+        </footer>
+    </div>
+</body>
+</html>"""
+
+    def _generate_summary(self, results: List[ValidationResult]) -> dict:
+        if not results:
+            return {"average_score": 0, "total_files": 0, "passed": 0, "failed": 0, "critical_issues": 0}
+        
+        return {
+            "average_score": round(sum(r.trust_score for r in results) / len(results), 1),
+            "total_files": len(results),
+            "passed": sum(1 for r in results if r.passed),
+            "failed": sum(1 for r in results if not r.passed),
+            "critical_issues": sum(len(r.critical_issues) for r in results)
+        }
+
+    def _generate_results_html(self, results: List[ValidationResult]) -> str:
+        html = ""
+        for result in results:
+            badge_class = self._badge_class(result.trust_score)
+            html += f"""
+        <div class="result-card">
+            <div class="result-header">
+                <span class="file-path">{result.file_path or 'stdin'}</span>
+                <span class="trust-badge {badge_class}">Score: {result.trust_score}</span>
+            </div>
+            {self._generate_issues_html(result.all_issues[:10])}
+        </div>"""
+        return html
+
+    def _generate_issues_html(self, issues) -> str:
+        if not issues:
+            return "<p style='color: #00ff88;'>✅ No issues found</p>"
+        
+        html = ""
+        for issue in issues:
+            line_info = f"<span class='line-num'>Line {issue.line}</span> — " if issue.line else ""
+            suggestion = f"<div class='suggestion'>💡 {issue.suggestion}</div>" if issue.suggestion else ""
+            
+            html += f"""
+            <div class="issue issue-{issue.severity}">
+                <span class="severity severity-{issue.severity}">{issue.severity}</span>
+                <span style="color: #888; margin: 0 0.5rem;">[{issue.category}]</span>
+                {line_info}{issue.message}
+                {suggestion}
+            </div>"""
+        return html
+
+    def _score_class(self, score: int) -> str:
+        if score >= 80:
+            return "score-good"
+        elif score >= 60:
+            return "score-warn"
+        return "score-bad"
+
+    def _badge_class(self, score: int) -> str:
+        if score >= 80:
+            return "badge-good"
+        elif score >= 60:
+            return "badge-warn"
+        return "badge-bad"
