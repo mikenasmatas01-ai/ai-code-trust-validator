@@ -1,0 +1,33 @@
+# AI Trust Validator Configuration
+# Place this file in your project root
+
+# Minimum trust score to pass (0-100)
+min_score: 75
+
+# Strict mode: fail on any critical issues regardless of score
+strict_mode: true
+
+# Individual check configurations
+checks:
+  security:
+    enabled: true
+    weight: 2.0  # Higher weight = more impact on final score
+  
+  hallucinations:
+    enabled: true
+    weight: 2.5  # Most important for AI-generated code
+  
+  logic:
+    enabled: true
+    weight: 1.0
+  
+  best_practices:
+    enabled: true
+    weight: 0.5  # Less critical for AI code
+
+# Files/patterns to ignore
+ignore:
+  - "tests/*"
+  - "migrations/*"
+  - "*/__pycache__/*"
+  - "*.min.js"
