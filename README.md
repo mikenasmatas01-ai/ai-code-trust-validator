@@ -8,6 +8,7 @@
 [![GitHub forks](https://img.shields.io/github/forks/rudra496/ai-code-trust-validator.svg?style=social)](https://github.com/rudra496/ai-code-trust-validator/network/members)
 [![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)](https://github.com/rudra496/ai-code-trust-validator/pkgs/container/ai-code-trust-validator)
 [![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visualstudiocode)](vscode-extension/)
+[![JetBrains](https://img.shields.io/badge/JetBrains-Plugin-purple?logo=jetbrains)](jetbrains-plugin/)
 
 **Trust your AI-generated code before shipping to production.**
 
@@ -39,6 +40,8 @@ AI writes code fast, but that code often contains:
 | Category | Features |
 |----------|----------|
 | **🔍 Analysis** | Security scanning, Hallucination detection, Logic validation, Best practices |
+| **🌐 Multi-Language** | Python, JavaScript, TypeScript support |
+| **🤖 AI Auto-Fix** | LLM-powered fixes (OpenAI, Anthropic, Ollama) |
 | **📊 Reports** | JSON, HTML (beautiful dashboard), SARIF (GitHub Security), PDF |
 | **🔧 Fixes** | Auto-fix suggestions, Confidence scores, One-click apply |
 | **🧪 Testing** | Auto-generate pytest tests, Edge case detection, Coverage analysis |
@@ -48,7 +51,7 @@ AI writes code fast, but that code often contains:
 | **⚡ Performance** | Intelligent caching, Incremental analysis, ~10,000+ lines/sec |
 | **🔌 Extensible** | Plugin system, Custom analyzers, Hook system |
 | **🐳 Deployment** | Docker, Docker Compose, GitHub Action, Pre-commit hooks |
-| **💻 IDE Integration** | VS Code extension, LSP server, JetBrains (coming soon) |
+| **💻 IDE Integration** | VS Code extension, JetBrains plugin, LSP server |
 | **📈 Team Analytics** | Dashboard, Leaderboards, Trend analysis, Project breakdown |
 
 ---
@@ -82,8 +85,10 @@ docker run -v ./code:/code ghcr.io/rudra496/ai-code-trust-validator validate /co
 ### CLI
 
 ```bash
-# Validate a file
+# Validate a file (Python, JS, or TS)
 aitrust validate generated_code.py
+aitrust validate src/app.js
+aitrust validate src/component.tsx
 
 # Validate directory with minimum score
 aitrust validate src/ --min-score 75 --strict
@@ -93,6 +98,10 @@ aitrust report src/ --format html --output report.html
 
 # Get fix suggestions
 aitrust suggest-fixes buggy_code.py
+
+# AI-powered auto-fix (requires API key)
+export OPENAI_API_KEY="sk-..."
+aitrust ai-fix file.py --apply
 
 # Generate tests
 aitrust generate-tests module.py --output tests/test_module.py
@@ -114,16 +123,19 @@ aitrust analytics --days 30
 
 # Start LSP server (for IDE integration)
 aitrust lsp
+
+# Show supported languages
+aitrust languages
 ```
 
 ### Python API
 
 ```python
-from ai_trust_validator import Validator, Config
+from ai_trust_validator import Validator, Config, MultiLanguageValidator
 
-# Simple validation
-validator = Validator()
-result = validator.validate("generated_code.py")
+# Simple validation (auto-detects language)
+validator = MultiLanguageValidator()
+result = validator.validate("generated_code.py")  # or .js, .ts files
 
 print(f"Trust Score: {result.trust_score}/100")
 print(f"Passed: {result.passed}")
@@ -152,32 +164,174 @@ stats = db.get_stats(days=30)
 print(f"Team avg: {stats.average_score}")
 ```
 
-### REST API
+---
 
-```bash
-# Start server
-aitrust serve --port 8080
+## 🌐 JavaScript/TypeScript Support
 
-# Validate via API
-curl -X POST http://localhost:8080/validate \
-  -H "Content-Type: application/json" \
-  -d '{"code": "def hello(): print(\"world\")"}'
+The validator supports JavaScript and TypeScript files with comprehensive analysis:
 
-# Batch validation
-curl -X POST http://localhost:8080/validate/batch \
-  -H "Content-Type: application/json" \
-  -d '{"files": [{"name": "a.py", "code": "..."}]}'
+### Supported File Types
+
+| Language | Extensions | Analysis Type |
+|----------|------------|---------------|
+| JavaScript | .js, .mjs, .cjs, .jsx | Pattern-based analysis |
+| TypeScript | .ts, .tsx, .mts | JS + type checking |
+
+### Security Checks for JS/TS
+
+- `eval()`, `new Function()` - Code injection risks
+- `innerHTML`, `outerHTML` - XSS vulnerabilities
+- `document.write()` - XSS and DOM manipulation risks
+- `setTimeout(string)` - Code injection via strings
+- Prototype pollution (`__proto__`, `constructor.prototype`)
+- Hardcoded secrets and API keys
+- `child_process.exec()` - Command injection
+- `@ts-ignore`, `any` type - Type safety bypass
+
+### Hallucination Detection
+
+- Detects hallucinated npm packages
+- Identifies fake/invented functions
+- Checks for placeholder API URLs
+
+### Usage
+
+```python
+from ai_trust_validator import MultiLanguageValidator, detect_language
+
+validator = MultiLanguageValidator()
+
+# Auto-detects language from file extension
+result = validator.validate("src/app.js")
+print(f"Language: {detect_language('src/app.js')}")  # 'javascript'
+print(f"Trust Score: {result.trust_score}/100")
 ```
 
-### Web Dashboard
+---
+
+## 🤖 AI-Powered Auto-Fix
+
+Use LLMs to automatically fix detected issues. Supports multiple providers:
+
+### Supported Providers
+
+| Provider | Environment Variable | Default Model |
+|----------|---------------------|---------------|
+| OpenAI | `OPENAI_API_KEY` | gpt-4o-mini |
+| Anthropic | `ANTHROPIC_API_KEY` | claude-3-haiku-20240307 |
+| Ollama | `USE_OLLAMA=true` | llama3 |
+| Custom | `LLM_BASE_URL` + `LLM_API_KEY` | configurable |
+
+### CLI Usage
 
 ```bash
-# Start server with dashboard
-aitrust serve --port 8080
+# Set your API key
+export OPENAI_API_KEY="sk-..."
 
-# Open browser to http://localhost:8080
-# Or serve the static dashboard
-cd dashboard && python -m http.server 3000
+# Fix a file (shows fixed code)
+aitrust ai-fix file.py
+
+# Apply fixes directly (creates .backup file)
+aitrust ai-fix file.py --apply
+
+# Fix only security issues
+aitrust ai-fix file.py --category security
+
+# Use different provider/model
+aitrust ai-fix file.js --provider ollama --model llama3
+aitrust ai-fix file.ts --provider anthropic --model claude-3-haiku-20240307
+```
+
+### Python API
+
+```python
+from ai_trust_validator import Validator, AIAutoFixer, LLMConfig
+
+# Configure LLM
+config = LLMConfig(
+    provider="openai",
+    model="gpt-4o-mini",
+    api_key="sk-..."
+)
+
+fixer = AIAutoFixer(config)
+validator = Validator()
+
+# Validate and fix
+code = open("file.py").read()
+result = validator.validate(code, is_file=False)
+fix_result = fixer.fix(code, result.all_issues, language="python")
+
+if fix_result.success:
+    print(f"Fixed with {fix_result.confidence:.0%} confidence")
+    print(fix_result.fixed_code)
+```
+
+### Quick Fix Function
+
+```python
+from ai_trust_validator import ai_fix_code
+
+result = ai_fix_code(
+    code,
+    issues,
+    language="javascript",
+    api_key="sk-..."
+)
+print(result.fixed_code)
+```
+
+---
+
+## 💻 IDE Integration
+
+### VS Code
+
+```bash
+# Install from VS Code Marketplace
+# Search for "AI Trust Validator"
+
+# Or install manually
+cd vscode-extension
+npm install
+npm run compile
+```
+
+Features:
+- Real-time diagnostics
+- Trust score in status bar
+- Quick fix suggestions
+- Hover information
+- Auto-validate on save
+
+### JetBrains (IntelliJ, PyCharm)
+
+```bash
+# Install from JetBrains Marketplace
+# Search for "AI Trust Validator"
+
+# Or build from source
+cd jetbrains-plugin
+./gradlew build
+# Install the built plugin from build/distributions/
+```
+
+Features:
+- Real-time code analysis with inline warnings
+- Trust score in status bar
+- Tool window with detailed results
+- One-click AI-powered fixes
+- Project-wide validation
+
+### LSP Server (Neovim, Emacs, etc.)
+
+```bash
+# Start LSP server
+aitrust lsp
+
+# Configure in your LSP client
+# Command: aitrust lsp
+# Language: python, javascript, typescript
 ```
 
 ---
@@ -219,6 +373,7 @@ cd dashboard && python -m http.server 3000
 | `aitrust validate <path>` | Validate code and show trust score |
 | `aitrust report <path>` | Generate detailed report (JSON/HTML/SARIF) |
 | `aitrust suggest-fixes <path>` | Show fix suggestions for issues |
+| `aitrust ai-fix <path>` | Apply AI-powered fixes |
 | `aitrust generate-tests <path>` | Generate pytest tests |
 | `aitrust serve` | Start REST API server |
 | `aitrust watch <path>` | Watch files for changes |
@@ -227,6 +382,7 @@ cd dashboard && python -m http.server 3000
 | `aitrust analytics` | View team analytics |
 | `aitrust cache <action>` | Manage validation cache |
 | `aitrust lsp` | Start LSP server for IDEs |
+| `aitrust languages` | Show supported languages |
 
 ---
 
@@ -260,7 +416,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Validate AI Code
-        uses: rudra496/ai-code-trust-validator@v0.3.0
+        uses: rudra496/ai-code-trust-validator@v0.4.0
         with:
           path: 'src/'
           min-score: '75'
@@ -273,44 +429,10 @@ jobs:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/rudra496/ai-code-trust-validator
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: ai-trust-validator
         args: ['--min-score', '70']
-```
-
----
-
-## 💻 IDE Integration
-
-### VS Code
-
-```bash
-# Install from VS Code Marketplace
-# Search for "AI Trust Validator"
-
-# Or install manually
-cd vscode-extension
-npm install
-npm run compile
-```
-
-Features:
-- Real-time diagnostics
-- Trust score in status bar
-- Quick fix suggestions
-- Hover information
-- Auto-validate on save
-
-### LSP Server (Neovim, Emacs, etc.)
-
-```bash
-# Start LSP server
-aitrust lsp
-
-# Configure in your LSP client
-# Command: aitrust lsp
-# Language: python
 ```
 
 ---
@@ -386,12 +508,12 @@ aitrust benchmark --iterations 1000
 - [x] VS Code extension
 - [x] Web dashboard
 - [x] Team analytics
+- [x] **JavaScript/TypeScript support** (NEW in v0.4.0)
+- [x] **AI-powered auto-fix with LLM integration** (NEW in v0.4.0)
+- [x] **JetBrains plugin (IntelliJ, PyCharm)** (NEW in v0.4.0)
 
 ### Coming Soon 🚧
 
-- [ ] JavaScript/TypeScript support
-- [ ] AI-powered auto-fix (LLM integration)
-- [ ] JetBrains plugin (IntelliJ, PyCharm)
 - [ ] Cloud hosted version
 
 ---
