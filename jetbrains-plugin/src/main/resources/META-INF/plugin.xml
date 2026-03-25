@@ -1,0 +1,43 @@
+<idea-plugin>
+    <id>com.aitrustvalidator.plugin</id>
+    <name>AI Code Trust Validator</name>
+    <vendor email="rudra496@users.noreply.github.com" url="https://github.com/rudra496/ai-code-trust-validator">Rudra Sarker</vendor>
+    <description><![CDATA[
+        <h2>🛡️ AI Code Trust Validator</h2>
+        <p>Trust your AI-generated code before shipping to production.</p>
+        <h3>Features</h3>
+        <ul>
+            <li>🔍 Security vulnerability detection</li>
+            <li>🎭 Hallucination detection for AI-generated code</li>
+            <li>🐛 Logic error detection</li>
+            <li>📋 Best practices validation</li>
+            <li>💡 Fix suggestions with one-click apply</li>
+            <li>🤖 AI-powered auto-fix (with LLM integration)</li>
+            <li>📊 Trust score indicator in status bar</li>
+            <li>⚡ Real-time validation on save</li>
+        </ul>
+        <h3>Supported Languages</h3>
+        <ul><li>Python</li><li>JavaScript</li><li>TypeScript</li></ul>
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+    <depends optional="true" config-file="java.xml">com.intellij.modules.java</depends>
+    <depends optional="true">JavaScript</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="AI Trust Validator" secondary="true" icon="AllIcons.General.InspectionsTraffic" anchor="bottom" factoryClass="com.aitrustvalidator.TrustValidatorToolWindowFactory"/>
+        <annotator language="Python" implementationClass="com.aitrustvalidator.annotator.PythonAnnotator"/>
+        <annotator language="JavaScript" implementationClass="com.aitrustvalidator.annotator.JavaScriptAnnotator"/>
+        <annotator language="TypeScript" implementationClass="com.aitrustvalidator.annotator.TypeScriptAnnotator"/>
+        <statusBarWidgetFactory id="AITrustScore" implementation="com.aitrustvalidator.widget.TrustScoreWidgetFactory"/>
+        <applicationConfigurable parentId="tools" instance="com.aitrustvalidator.settings.TrustValidatorConfigurable" id="com.aitrustvalidator.settings" displayName="AI Trust Validator"/>
+        <applicationService serviceImplementation="com.aitrustvalidator.settings.TrustValidatorSettings"/>
+    </extensions>
+    <actions>
+        <action id="AITrustValidate" class="com.aitrustvalidator.action.ValidateFileAction" text="Validate with AI Trust" description="Validate current file">
+            <add-to-group group-id="AnalyzeMenu" anchor="after" relative-to-action="InspectCode"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt V"/>
+        </action>
+        <action id="AITrustAIFix" class="com.aitrustvalidator.action.ApplyAIFixAction" text="Apply AI Fix" description="Use AI to fix detected issues">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="ReformatCode"/>
+        </action>
+    </actions>
+</idea-plugin>
