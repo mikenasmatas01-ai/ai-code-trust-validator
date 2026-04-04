@@ -540,6 +540,18 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
+## ⭐ Star History
+
+<a href="https://star-history.com/#rudra496/ai-code-trust-validator&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=rudra496/ai-code-trust-validator&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=rudra496/ai-code-trust-validator&type=Date" />
+   <img alt="Star History" src="https://api.star-history.com/svg?repos=rudra496/ai-code-trust-validator&type=Date" />
+ </picture>
+</a>
+
+---
+
 ## 📄 License
 
 MIT License — use it freely. Just don't blame us if AI breaks production. 😉
